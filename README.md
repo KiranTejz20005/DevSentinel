@@ -39,3 +39,14 @@ High-level flow: `Logs -> Kestra AI summary -> decision -> Cline code fix -> Git
 ## Notes
 - Place secrets in your runtime environment, not in repo.
 - Replace placeholder logic before production use.
+
+## Environment
+- Copy `.env.example` to `.env` and fill values:
+	- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (for deploy action)
+	- `KESTRA_BASE_URL`, `KESTRA_API_TOKEN`
+	- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `HF_TOKEN` (LLM providers for Cline/Oumi/Kestra)
+	- `API_BASE_URL`, `UVICORN_WORKERS` (optional)
+
+## Vercel entrypoint
+- FastAPI app exposed via `api/index.py` (imports `services.api:app`).
+- `frontend/vercel.json` routes `/api/*` to that entrypoint and serves the frontend page for other paths.
