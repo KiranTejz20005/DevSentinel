@@ -1,0 +1,29 @@
+id: incident_flow
+namespace: devsentinel
+label: Incident AI Agent Flow
+triggers:
+  - id: manual
+    type: manual
+inputs: []
+tasks:
+  - id: detect_incident
+    type: io.kestra.plugin.scripts.python.Script
+    label: Run detector
+    script: |
+      #!/usr/bin/env python
+      # Placeholder: call into services/detector.py
+      print("Detector stub - replace with real invocation")
+  - id: notify_and_repair
+    type: io.kestra.plugin.scripts.python.Script
+    label: Trigger repair agent
+    script: |
+      #!/usr/bin/env python
+      # Placeholder: orchestrate repair agent call
+      print("Repair stub - replace with agent call")
+  - id: summarize
+    type: io.kestra.plugin.scripts.python.Script
+    label: Summarize incident
+    script: |
+      #!/usr/bin/env python
+      # Placeholder: summarize and report
+      print("Summary stub - replace with reporting")

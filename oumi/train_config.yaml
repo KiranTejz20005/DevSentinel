@@ -1,0 +1,18 @@
+experiment:
+  name: devsentinel-rl
+  seed: 42
+
+training:
+  steps: 10000
+  batch_size: 8
+  learning_rate: 1e-4
+
+model:
+  name: placeholder-model
+
+dataset:
+  path: data/
+  format: jsonl
+
+rewards:
+  - placeholder_reward

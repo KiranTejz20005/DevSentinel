@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "frontend/pages/**/*.tsx", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/frontend/pages/index.tsx" }
+  ]
+}

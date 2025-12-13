@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  devsentinel:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Add your env vars / secrets here or use an .env file
+      - UVICORN_WORKERS=1
+    volumes:
+      - ./:/app
+    command: ["uvicorn", "services.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    # Uncomment to run cline inside the container (after adding Node/NPM):
+    #  docker compose run --rm devsentinel npm install -g cline
