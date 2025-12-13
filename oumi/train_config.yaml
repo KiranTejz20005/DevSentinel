@@ -15,4 +15,4 @@ dataset:
   format: jsonl
 
 rewards:
-  - placeholder_reward
+  - incident_success_reward

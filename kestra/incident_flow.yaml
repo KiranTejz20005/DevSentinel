@@ -4,26 +4,48 @@ label: Incident AI Agent Flow
 triggers:
   - id: manual
     type: manual
-inputs: []
+inputs:
+  - id: log_text
+    type: STRING
+    defaults: "Service X timeout when connecting to DB"
+  - id: incident_id
+    type: STRING
+    defaults: "placeholder-incident"
+
 tasks:
-  - id: detect_incident
+  - id: summarize_incident
+    type: io.kestra.plugin.ai.agent.AIAgent
+    label: Summarize and propose action
+    systemMessage: |
+      You are an automated incident management assistant. Summarize the issue and propose a concrete fix.
+    prompt: |
+      Incident logs:
+      {{ inputs.log_text }}
+    # The agent returns textOutput; downstream tasks can use {{ outputs.summarize_incident.textOutput }}
+
+  - id: decide_and_log
     type: io.kestra.plugin.scripts.python.Script
-    label: Run detector
+    label: Decide next action based on summary
     script: |
       #!/usr/bin/env python
-      # Placeholder: call into services/detector.py
-      print("Detector stub - replace with real invocation")
-  - id: notify_and_repair
+      import json
+      summary = """{{ outputs.summarize_incident.textOutput | default("No summary produced.") }}"""
+      print("SUMMARY_START")
+      print(summary)
+      print("SUMMARY_END")
+      # In a real flow, branch to sub-flows or shell tasks; here we just pass through
+      payload = {"summary": summary, "incident_id": "{{ inputs.incident_id }}"}
+      print("PAYLOAD:" + json.dumps(payload))
+
+  - id: call_repair_api
     type: io.kestra.plugin.scripts.python.Script
-    label: Trigger repair agent
+    label: Trigger repair via FastAPI mock endpoint
     script: |
       #!/usr/bin/env python
-      # Placeholder: orchestrate repair agent call
-      print("Repair stub - replace with agent call")
-  - id: summarize
-    type: io.kestra.plugin.scripts.python.Script
-    label: Summarize incident
-    script: |
-      #!/usr/bin/env python
-      # Placeholder: summarize and report
-      print("Summary stub - replace with reporting")
+      import json
+      import requests
+
+      incident_id = "{{ inputs.incident_id }}"
+      resp = requests.post("http://localhost:8000/repair", json={"id": incident_id})
+      resp.raise_for_status()
+      print(json.dumps(resp.json(), indent=2))

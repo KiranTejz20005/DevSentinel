@@ -19,6 +19,14 @@ def placeholder_reward(example: dict) -> float:
     return 0.0
 
 
+@register("incident_success_reward")
+def incident_success_reward(example: dict) -> float:
+    """Reward +1 if incident is marked resolved, else -1."""
+    # Expect example like {"status": "resolved", "incident_id": "..."}
+    status = (example or {}).get("status", "").lower()
+    return 1.0 if status == "resolved" else -1.0
+
+
 def available_rewards() -> Dict[str, Callable]:
     return REGISTRY
 
