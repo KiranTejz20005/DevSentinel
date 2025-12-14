@@ -15,3 +15,5 @@ cline_tasks/*.task.py
 
 # VS Code
 .vscode/
+.vercel
+.env*.local
