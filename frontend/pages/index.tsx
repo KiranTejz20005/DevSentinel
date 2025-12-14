@@ -44,8 +44,8 @@ export default function Home() {
     const refresh = async () => {
         try {
             const [incResp, actResp] = await Promise.all([
-                fetch("/incidents"),
-                fetch("/actions"),
+                fetch("/api/incidents"),
+                fetch("/api/actions"),
             ]);
             const incJson = await incResp.json();
             const actJson = await actResp.json();
@@ -68,10 +68,10 @@ export default function Home() {
         setBusyIds((prev) => ({ ...prev, [incidentId]: true }));
         setToast(null);
         try {
-            const resp = await fetch("/repair", {
+            const resp = await fetch("/api/repair", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: incidentId }),
+                body: JSON.stringify({ incident_id: incidentId }),
             });
             if (!resp.ok) throw new Error(`Repair failed (${resp.status})`);
             const data = await resp.json();
@@ -88,7 +88,7 @@ export default function Home() {
     const handleCreate = async () => {
         setToast(null);
         try {
-            const resp = await fetch("/incidents", {
+            const resp = await fetch("/api/incidents", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ signal: createText || "Synthetic incident" }),

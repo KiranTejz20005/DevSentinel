@@ -1,18 +1,226 @@
+# Oumi Training Configuration for DevSentinel RL
+# This configuration defines how to train the incident management AI using reinforcement learning
+
 experiment:
-  name: devsentinel-rl
+  name: devsentinel-rl-v1
+  description: "Train DevSentinel AI for automated incident management and code repair"
   seed: 42
+  output_dir: "./outputs/devsentinel-rl"
+  logging:
+    wandb_enabled: true
+    wandb_project: "devsentinel"
+    wandb_entity: "your-org"
+    log_interval: 10
+    save_interval: 100
 
+# Training hyperparameters
 training:
-  steps: 10000
-  batch_size: 8
-  learning_rate: 1e-4
+  algorithm: "ppo"  # Proximal Policy Optimization
+  total_steps: 100000
+  batch_size: 16
+  mini_batch_size: 4
+  epochs_per_iteration: 4
+  
+  learning_rate: 3e-4
+  lr_schedule: "cosine"
+  warmup_steps: 1000
+  
+  max_grad_norm: 0.5
+  clip_range: 0.2
+  
+  # PPO specific
+  value_loss_coef: 0.5
+  entropy_coef: 0.01
+  gamma: 0.99  # Discount factor
+  gae_lambda: 0.95  # GAE parameter
+  
+  gradient_accumulation_steps: 1
+  mixed_precision: "fp16"
 
+# Model configuration
 model:
-  name: placeholder-model
+  name: "meta-llama/Llama-3.2-3B-Instruct"
+  type: "causal_lm"
+  
+  # Model loading
+  load_in_8bit: false
+  load_in_4bit: false
+  use_flash_attention: true
+  
+  # LoRA configuration for efficient fine-tuning
+  use_lora: true
+  lora:
+    r: 16
+    lora_alpha: 32
+    lora_dropout: 0.05
+    target_modules:
+      - "q_proj"
+      - "v_proj"
+      - "k_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+    bias: "none"
+    task_type: "CAUSAL_LM"
+  
+  # Generation settings
+  generation:
+    max_new_tokens: 512
+    temperature: 0.7
+    top_p: 0.9
+    top_k: 50
+    do_sample: true
+    num_beams: 1
 
+# Dataset configuration
 dataset:
-  path: data/
-  format: jsonl
+  train:
+    path: "data/train_incidents.jsonl"
+    format: "jsonl"
+    max_samples: null
+  
+  validation:
+    path: "data/val_incidents.jsonl"
+    format: "jsonl"
+    max_samples: 500
+  
+  test:
+    path: "data/test_incidents.jsonl"
+    format: "jsonl"
+    max_samples: 200
+  
+  # Data processing
+  preprocessing:
+    max_length: 2048
+    truncation: true
+    padding: "max_length"
+  
+  # Data format expectations
+  fields:
+    prompt: "incident_prompt"
+    response: "fix_response"
+    reward_data: "episode_data"
 
+# Reward function configuration
 rewards:
-  - incident_success_reward
+  # Primary reward function
+  primary: "composite_reward"
+  
+  # All available reward functions with their weights
+  functions:
+    - name: "incident_success_reward"
+      weight: 2.0
+      description: "Main success metric - was incident resolved?"
+    
+    - name: "fix_quality_reward"
+      weight: 1.0
+      description: "Quality of the generated fix"
+    
+    - name: "response_time_reward"
+      weight: 0.5
+      description: "Speed of incident resolution"
+    
+    - name: "false_positive_penalty"
+      weight: 1.0
+      description: "Penalty for incorrect detections"
+    
+    - name: "severity_alignment_reward"
+      weight: 0.5
+      description: "Accuracy of severity classification"
+    
+    - name: "code_quality_reward"
+      weight: 0.5
+      description: "Quality of generated code changes"
+  
+  # Reward shaping
+  reward_shaping:
+    normalize: true
+    clip_range: [-10.0, 10.0]
+    use_advantage_normalization: true
+
+# Evaluation configuration
+evaluation:
+  eval_frequency: 1000
+  eval_steps: 100
+  
+  metrics:
+    - "success_rate"
+    - "average_reward"
+    - "resolution_time"
+    - "false_positive_rate"
+    - "code_quality_score"
+  
+  save_best_model: true
+  best_model_metric: "success_rate"
+
+# Environment configuration for incident simulation
+environment:
+  type: "incident_management"
+  
+  # Incident generation parameters
+  incident_types:
+    - "timeout"
+    - "connection_error"
+    - "memory_leak"
+    - "null_pointer"
+    - "api_error"
+    - "config_error"
+  
+  severity_distribution:
+    low: 0.3
+    medium: 0.4
+    high: 0.2
+    critical: 0.1
+  
+  # Episode configuration
+  max_episode_length: 10
+  max_episodes: 10000
+
+# Checkpointing
+checkpointing:
+  save_frequency: 1000
+  keep_last_n: 5
+  save_optimizer_state: true
+  save_on_interrupt: true
+
+# Hardware and optimization
+hardware:
+  num_gpus: 1
+  num_cpus: 4
+  gpu_memory_fraction: 0.9
+  
+  distributed:
+    enabled: false
+    backend: "nccl"
+    world_size: 1
+
+# Reproducibility
+reproducibility:
+  deterministic: false
+  benchmark: true
+
+# Callbacks and hooks
+callbacks:
+  - type: "early_stopping"
+    patience: 5
+    min_delta: 0.001
+    metric: "success_rate"
+  
+  - type: "learning_rate_monitor"
+  
+  - type: "model_checkpoint"
+    monitor: "success_rate"
+    mode: "max"
+
+# Inference configuration (for deployment)
+inference:
+  batch_size: 1
+  num_workers: 2
+  quantization: null  # Options: "int8", "int4", null
+  
+  # API deployment settings
+  api:
+    host: "0.0.0.0"
+    port: 8001
+    max_concurrent_requests: 10

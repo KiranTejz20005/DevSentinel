@@ -1,1 +1,4 @@
-from services.api import app  # FastAPI entrypoint for platforms expecting main:app
+"""FastAPI entrypoint"""
+from devsentinel.services.api import app
+
+__all__ = ["app"]

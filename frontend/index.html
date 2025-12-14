@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevSentinel - AI-Powered Incident Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary: #764ba2;
+            --success: #48bb78;
+            --warning: #f6a609;
+            --danger: #f56565;
+            --info: #4299e1;
+            --dark: #1a202c;
+            --light: #f7fafc;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2d3748;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header Styles */
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .title-section h1 {
+            font-size: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-info {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f7fafc 0%, #ffffff 100%);
+            padding: 25px;
+            border-radius: 16px;
+            border-left: 5px solid var(--primary);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.danger { border-left-color: var(--danger); }
+        .stat-card.info { border-left-color: var(--info); }
+
+        .stat-value {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-trend {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        .trend-up {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .trend-down {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        /* Main Content */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 25px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Search Box */
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 45px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+        }
+
+        /* Incident List */
+        .incident-list {
+            display: grid;
+            gap: 18px;
+            max-height: 700px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .incident-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .incident-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .incident-list::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .incident-item {
+            background: linear-gradient(135deg, #f7fafc 0%, #ffffff 100%);
+            border-radius: 16px;
+            padding: 25px;
+            border-left: 5px solid var(--border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .incident-item:hover {
+            transform: translateX(8px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .incident-item.critical { border-left-color: #e53e3e; }
+        .incident-item.high { border-left-color: #ed8936; }
+        .incident-item.medium { border-left-color: #ecc94b; }
+        .incident-item.low { border-left-color: #48bb78; }
+
+        .incident-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .incident-id {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--dark);
+        }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-warning {
+            background: #fef5e7;
+            color: #c05621;
+        }
+
+        .badge-danger {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .badge-info {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .incident-info {
+            color: #718096;
+            font-size: 14px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .incident-summary {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 14px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .incident-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #a0aec0;
+            margin: 15px 0;
+        }
+
+        .incident-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: grid;
+            gap: 25px;
+        }
+
+        /* Action Items */
+        .action-list {
+            display: grid;
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .action-item {
+            background: linear-gradient(135deg, #f7fafc 0%, #ffffff 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--success);
+            transition: all 0.3s;
+        }
+
+        .action-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .action-title {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .diff-container {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .diff-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .diff-container::-webkit-scrollbar-thumb {
+            background: var(--success);
+            border-radius: 3px;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--border);
+        }
+
+        .modal-header h2 {
+            font-size: 28px;
+            color: var(--dark);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: #a0aec0;
+            transition: all 0.3s;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: #fed7d7;
+            color: var(--danger);
+            transform: rotate(90deg);
+        }
+
+        /* Form Elements */
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+            animation: slideInRight 0.3s ease-out;
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            max-width: 400px;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-success {
+            border-left: 5px solid var(--success);
+        }
+
+        .toast-error {
+            border-left: 5px solid var(--danger);
+        }
+
+        .toast-info {
+            border-left: 5px solid var(--info);
+        }
+
+        .toast i {
+            font-size: 24px;
+        }
+
+        .toast-success i {
+            color: var(--success);
+        }
+
+        .toast-error i {
+            color: var(--danger);
+        }
+
+        .toast-info i {
+            color: var(--info);
+        }
+
+        /* Loading States */
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Quick Actions Panel */
+        .quick-actions {
+            display: grid;
+            gap: 12px;
+        }
+
+        .quick-action-btn {
+            width: 100%;
+            justify-content: center;
+            text-align: left;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .title-section h1 {
+                font-size: 28px;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <div class="logo-section">
+                    <div class="logo">🛡️</div>
+                    <div class="title-section">
+                        <h1>DevSentinel</h1>
+                        <div class="subtitle">
+                            <i class="fas fa-robot"></i> AI-Powered Incident Management & Auto-Repair Platform
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="app.refresh()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-info" onclick="app.testClineTasks()">
+                        <i class="fas fa-flask"></i> Test Cline
+                    </button>
+                    <button class="btn btn-warning" onclick="app.testRewards()">
+                        <i class="fas fa-trophy"></i> Test Rewards
+                    </button>
+                    <button class="btn btn-primary" onclick="app.showCreateModal()">
+                        <i class="fas fa-plus"></i> New Incident
+                    </button>
+                    <button class="btn btn-success" onclick="app.repairAll()">
+                        <i class="fas fa-tools"></i> Repair All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card info">
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label">
+                        <i class="fas fa-list"></i> Total Incidents
+                    </div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value" id="stat-pending">0</div>
+                    <div class="stat-label">
+                        <i class="fas fa-clock"></i> Pending
+                    </div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value" id="stat-resolved">0</div>
+                    <div class="stat-label">
+                        <i class="fas fa-check-circle"></i> Resolved
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-actions">0</div>
+                    <div class="stat-label">
+                        <i class="fas fa-bolt"></i> Total Actions
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-grid">
+            <!-- Incidents Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Incidents
+                    </h2>
+                    <div class="filters">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="search-input" placeholder="Search incidents..." onkeyup="app.filterIncidents()">
+                        </div>
+                        <select id="filter-severity" class="filter-select" onchange="app.filterIncidents()">
+                            <option value="all">All Severities</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <select id="filter-status" class="filter-select" onchange="app.filterIncidents()">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="incidents-container"></div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-rocket"></i>
+                            Quick Actions
+                        </h2>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary quick-action-btn" onclick="app.showCreateModal()">
+                            <i class="fas fa-plus-circle"></i> Create Incident
+                        </button>
+                        <button class="btn btn-success quick-action-btn" onclick="app.repairAll()">
+                            <i class="fas fa-tools"></i> Repair All Pending
+                        </button>
+                        <button class="btn btn-info quick-action-btn" onclick="app.testClineTasks()">
+                            <i class="fas fa-code"></i> Run Cline Fix Bug
+                        </button>
+                        <button class="btn btn-warning quick-action-btn" onclick="app.testRewards()">
+                            <i class="fas fa-award"></i> Test Reward Functions
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-history"></i>
+                            Recent Actions
+                        </h2>
+                        <span class="badge badge-info" id="actions-count">0</span>
+                    </div>
+                    <div id="actions-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Incident Modal -->
+    <div id="create-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus-circle"></i> Create New Incident</h2>
+                <button class="close-btn" onclick="app.hideCreateModal()">×</button>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label class="form-label" for="incident-signal">
+                        <i class="fas fa-exclamation-circle"></i> Incident Signal / Error Message:
+                    </label>
+                    <textarea 
+                        id="incident-signal" 
+                        placeholder="Enter error message, stack trace, or incident description...">Service timeout: Database connection pool exhausted after 30 seconds. Error: ETIMEDOUT. All 100 connections in use.</textarea>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-primary" onclick="app.createIncident()">
+                        <i class="fas fa-check"></i> Create Incident
+                    </button>
+                    <button class="btn btn-secondary" onclick="app.hideCreateModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incident Detail Modal -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-info-circle"></i> Incident Details</h2>
+                <button class="close-btn" onclick="app.hideDetailModal()">×</button>
+            </div>
+            <div id="detail-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        const app = {
+            incidents: [],
+            actions: [],
+            stats: {},
+            filters: {
+                severity: 'all',
+                status: 'all',
+                search: ''
+            },
+
+            async init() {
+                console.log('🚀 Initializing DevSentinel...');
+                await this.refresh();
+                setInterval(() => this.refresh(), 5000);
+                console.log('✅ DevSentinel initialized');
+            },
+
+            async refresh() {
+                try {
+                    const [incidentsRes, actionsRes, statsRes] = await Promise.all([
+                        fetch(`${API_BASE}/incidents`),
+                        fetch(`${API_BASE}/actions`),
+                        fetch(`${API_BASE}/stats`)
+                    ]);
+
+                    const incidentsData = await incidentsRes.json();
+                    const actionsData = await actionsRes.json();
+                    const statsData = await statsRes.json();
+
+                    this.incidents = incidentsData.incidents || [];
+                    this.actions = actionsData.actions || [];
+                    this.stats = statsData;
+
+                    this.updateStats();
+                    this.renderIncidents();
+                    this.renderActions();
+                } catch (error) {
+                    console.error('Failed to refresh:', error);
+                    this.showToast('Failed to load data: ' + error.message, 'error');
+                }
+            },
+
+            updateStats() {
+                document.getElementById('stat-total').textContent = this.stats.total || 0;
+                document.getElementById('stat-pending').textContent = this.stats.pending || 0;
+                document.getElementById('stat-resolved').textContent = this.stats.resolved || 0;
+                document.getElementById('stat-actions').textContent = this.stats.actions || 0;
+                document.getElementById('actions-count').textContent = this.actions.length;
+            },
+
+            filterIncidents() {
+                this.filters.severity = document.getElementById('filter-severity').value;
+                this.filters.status = document.getElementById('filter-status').value;
+                this.filters.search = document.getElementById('search-input').value.toLowerCase();
+                this.renderIncidents();
+            },
+
+            getFilteredIncidents() {
+                return this.incidents.filter(incident => {
+                    const severityMatch = this.filters.severity === 'all' || 
+                                        incident.severity === this.filters.severity;
+                    const statusMatch = this.filters.status === 'all' || 
+                                      incident.status === this.filters.status;
+                    const searchMatch = !this.filters.search || 
+                                      incident.id.toLowerCase().includes(this.filters.search) ||
+                                      (incident.summary || '').toLowerCase().includes(this.filters.search);
+                    return severityMatch && statusMatch && searchMatch;
+                });
+            },
+
+            renderIncidents() {
+                const container = document.getElementById('incidents-container');
+                const filtered = this.getFilteredIncidents();
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fas fa-inbox"></i></div>
+                            <div class="empty-text">No incidents found</div>
+                            <button class="btn btn-primary" onclick="app.showCreateModal()" style="margin-top: 20px;">
+                                <i class="fas fa-plus"></i> Create First Incident
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="incident-list">
+                        ${filtered.map(incident => this.renderIncident(incident)).join('')}
+                    </div>
+                `;
+            },
+
+            renderIncident(incident) {
+                const severityClass = (incident.severity || 'info').toLowerCase();
+                const statusBadge = this.getStatusBadge(incident.status);
+                const severityIcon = this.getSeverityIcon(incident.severity);
+
+                return `
+                    <div class="incident-item ${severityClass}">
+                        <div class="incident-header">
+                            <span class="incident-id">
+                                ${severityIcon} ${incident.id}
+                            </span>
+                            ${statusBadge}
+                        </div>
+                        <div class="incident-info">
+                            <i class="fas fa-layer-group"></i>
+                            <strong>Severity:</strong> ${incident.severity || 'Unknown'}
+                        </div>
+                        ${incident.summary ? `
+                            <div class="incident-summary">
+                                <i class="fas fa-file-alt"></i> ${incident.summary}
+                            </div>
+                        ` : ''}
+                        <div class="incident-meta">
+                            <span><i class="fas fa-calendar-alt"></i> ${incident.detected_at || 'N/A'}</span>
+                            ${incident.resolved_at ? `<span><i class="fas fa-check"></i> ${incident.resolved_at}</span>` : ''}
+                        </div>
+                        <div class="incident-actions">
+                            <button class="btn btn-success btn-sm" onclick="app.repairIncident('${incident.id}')">
+                                <i class="fas fa-tools"></i> Repair
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="app.showIncidentDetail('${incident.id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="app.deleteIncident('${incident.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            },
+
+            getSeverityIcon(severity) {
+                const icons = {
+                    critical: '<i class="fas fa-fire" style="color: #e53e3e;"></i>',
+                    high: '<i class="fas fa-exclamation-triangle" style="color: #ed8936;"></i>',
+                    medium: '<i class="fas fa-exclamation-circle" style="color: #ecc94b;"></i>',
+                    low: '<i class="fas fa-info-circle" style="color: #48bb78;"></i>'
+                };
+                return icons[severity?.toLowerCase()] || '<i class="fas fa-question-circle"></i>';
+            },
+
+            getStatusBadge(status) {
+                const statusLower = (status || '').toLowerCase();
+                let badgeClass = 'badge-info';
+                let icon = 'circle';
+                
+                if (statusLower === 'resolved') {
+                    badgeClass = 'badge-success';
+                    icon = 'check-circle';
+                } else if (statusLower === 'pending') {
+                    badgeClass = 'badge-warning';
+                    icon = 'clock';
+                } else if (statusLower === 'failed') {
+                    badgeClass = 'badge-danger';
+                    icon = 'times-circle';
+                }
+
+                return `<span class="badge ${badgeClass}"><i class="fas fa-${icon}"></i> ${status || 'Unknown'}</span>`;
+            },
+
+            renderActions() {
+                const container = document.getElementById('actions-container');
+
+                if (this.actions.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fas fa-clipboard-list"></i></div>
+                            <div class="empty-text">No actions yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="action-list">
+                        ${this.actions.slice(0, 5).map(action => `
+                            <div class="action-item">
+                                <div class="action-header">
+                                    <span class="action-title">
+                                        <i class="fas fa-cog"></i> ${action.action || 'Unknown'}
+                                    </span>
+                                    ${this.getStatusBadge(action.status)}
+                                </div>
+                                <div style="font-size: 12px; color: #718096; margin-top: 8px;">
+                                    <i class="fas fa-hashtag"></i> ${action.incident_id}
+                                </div>
+                                ${action.notes ? `<div style="margin-top: 10px; font-size: 13px;">${action.notes}</div>` : ''}
+                                ${action.diff ? `<div class="diff-container">${this.escapeHtml(action.diff)}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            },
+
+            async repairIncident(incidentId) {
+                try {
+                    this.showToast('🔧 Starting repair for ' + incidentId, 'info');
+                    
+                    const response = await fetch(`${API_BASE}/repair`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ incident_id: incidentId })
+                    });
+
+                    if (!response.ok) throw new Error('Repair failed');
+
+                    await this.refresh();
+                    this.showToast('✅ Repair completed successfully!', 'success');
+                } catch (error) {
+                    this.showToast('❌ Repair failed: ' + error.message, 'error');
+                }
+            },
+
+            async repairAll() {
+                const pending = this.incidents.filter(i => i.status === 'pending');
+                
+                if (pending.length === 0) {
+                    this.showToast('No pending incidents to repair', 'error');
+                    return;
+                }
+
+                this.showToast(`🚀 Starting repair for ${pending.length} incidents...`, 'info');
+
+                for (const incident of pending) {
+                    await this.repairIncident(incident.id);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                this.showToast('✅ All repairs completed!', 'success');
+            },
+
+            async deleteIncident(incidentId) {
+                if (!confirm('Are you sure you want to delete this incident?')) return;
+
+                try {
+                    const response = await fetch(`${API_BASE}/incidents/${incidentId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) throw new Error('Delete failed');
+
+                    await this.refresh();
+                    this.showToast('🗑️ Incident deleted', 'success');
+                } catch (error) {
+                    this.showToast('❌ Delete failed: ' + error.message, 'error');
+                }
+            },
+
+            async testClineTasks() {
+                this.showToast('🧪 Running Cline fix-bug task...', 'info');
+                
+                try {
+                    const response = await fetch(`${API_BASE}/cline/fix-bug`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ incident_id: 'test-cline-' + Date.now() })
+                    });
+
+                    const result = await response.json();
+                    console.log('Cline result:', result);
+                    this.showToast('✅ Cline task completed successfully!', 'success');
+                } catch (error) {
+                    this.showToast('❌ Cline task failed: ' + error.message, 'error');
+                }
+            },
+
+            async testRewards() {
+                this.showToast('🎮 Testing reward functions...', 'info');
+                
+                try {
+                    const response = await fetch(`${API_BASE}/rewards/test`);
+                    const result = await response.json();
+                    console.log('Reward test result:', result);
+                    this.showToast(`✅ Reward test completed! Score: ${result.test_reward.toFixed(2)}`, 'success');
+                } catch (error) {
+                    this.showToast('❌ Reward test failed: ' + error.message, 'error');
+                }
+            },
+
+            showCreateModal() {
+                document.getElementById('create-modal').classList.add('active');
+            },
+
+            hideCreateModal() {
+                document.getElementById('create-modal').classList.remove('active');
+            },
+
+            async createIncident() {
+                const signal = document.getElementById('incident-signal').value;
+
+                if (!signal.trim()) {
+                    this.showToast('Please enter an incident signal', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_BASE}/incidents`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ signal })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to create incident');
+
+                    const result = await response.json();
+                    this.showToast('✅ Incident created: ' + result.incident.id, 'success');
+                    this.hideCreateModal();
+                    await this.refresh();
+                } catch (error) {
+                    this.showToast('❌ Failed to create incident: ' + error.message, 'error');
+                }
+            },
+
+            showIncidentDetail(incidentId) {
+                const incident = this.incidents.find(i => i.id === incidentId);
+                if (!incident) return;
+
+                const modal = document.getElementById('detail-modal');
+                const content = document.getElementById('detail-content');
+
+                content.innerHTML = `
+                    <div style="display: grid; gap: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Incident ID</label>
+                            <div style="padding: 12px; background: #f7fafc; border-radius: 8px;">
+                                ${incident.id}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            ${this.getStatusBadge(incident.status)}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Severity</label>
+                            <div>${this.getSeverityIcon(incident.severity)} ${incident.severity || 'Unknown'}</div>
+                        </div>
+                        ${incident.summary ? `
+                            <div class="form-group">
+                                <label class="form-label">Summary</label>
+                                <div class="incident-summary">${incident.summary}</div>
+                            </div>
+                        ` : ''}
+                        <div class="form-group">
+                            <label class="form-label">Detected At</label>
+                            <div><i class="fas fa-clock"></i> ${incident.detected_at || 'N/A'}</div>
+                        </div>
+                        ${incident.resolved_at ? `
+                            <div class="form-group">
+                                <label class="form-label">Resolved At</label>
+                                <div><i class="fas fa-check"></i> ${incident.resolved_at}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 30px;">
+                        <button class="btn btn-success" onclick="app.repairIncident('${incident.id}'); app.hideDetailModal()">
+                            <i class="fas fa-tools"></i> Repair Now
+                        </button>
+                        <button class="btn btn-danger" onclick="app.deleteIncident('${incident.id}'); app.hideDetailModal()">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+
+                modal.classList.add('active');
+            },
+
+            hideDetailModal() {
+                document.getElementById('detail-modal').classList.remove('active');
+            },
+
+            showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                const icons = {
+                    success: 'check-circle',
+                    error: 'times-circle',
+                    info: 'info-circle'
+                };
+                
+                toast.className = `toast toast-${type}`;
+                toast.innerHTML = `
+                    <i class="fas fa-${icons[type]}"></i>
+                    <div>${message}</div>
+                `;
+                
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.animation = 'slideInRight 0.3s ease-out reverse';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>

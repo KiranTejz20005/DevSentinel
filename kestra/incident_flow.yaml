@@ -1,51 +1,337 @@
 id: incident_flow
 namespace: devsentinel
-label: Incident AI Agent Flow
+label: DevSentinel AI-Driven Incident Management Flow
+description: |
+  Complete incident management workflow that detects, analyzes, fixes, and verifies incidents.
+  Uses AI Agent for intelligent decision making and automated code repair via Cline CLI.
+
 triggers:
-  - id: manual
-    type: manual
+  - id: manual_trigger
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/5 * * * *"  # Run every 5 minutes
+    disabled: true  # Enable when ready for automatic triggers
+  
+  - id: webhook_trigger
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: "devsentinel-incident-webhook"
+
 inputs:
   - id: log_text
     type: STRING
-    defaults: "Service X timeout when connecting to DB"
+    defaults: "Service X timeout when connecting to DB after 30s, error: Connection refused"
   - id: incident_id
     type: STRING
     defaults: "placeholder-incident"
+  - id: severity
+    type: STRING
+    defaults: "medium"
+    required: false
+  - id: auto_fix_enabled
+    type: BOOLEAN
+    defaults: true
 
 tasks:
-  - id: summarize_incident
-    type: io.kestra.plugin.ai.agent.AIAgent
-    label: Summarize and propose action
-    systemMessage: |
-      You are an automated incident management assistant. Summarize the issue and propose a concrete fix.
-    prompt: |
-      Incident logs:
-      {{ inputs.log_text }}
-    # The agent returns textOutput; downstream tasks can use {{ outputs.summarize_incident.textOutput }}
-
-  - id: decide_and_log
+  # Task 1: Fetch or create incident in our API
+  - id: fetch_incident
     type: io.kestra.plugin.scripts.python.Script
-    label: Decide next action based on summary
-    script: |
-      #!/usr/bin/env python
-      import json
-      summary = """{{ outputs.summarize_incident.textOutput | default("No summary produced.") }}"""
-      print("SUMMARY_START")
-      print(summary)
-      print("SUMMARY_END")
-      # In a real flow, branch to sub-flows or shell tasks; here we just pass through
-      payload = {"summary": summary, "incident_id": "{{ inputs.incident_id }}"}
-      print("PAYLOAD:" + json.dumps(payload))
-
-  - id: call_repair_api
-    type: io.kestra.plugin.scripts.python.Script
-    label: Trigger repair via FastAPI mock endpoint
+    label: Fetch or create incident from API
+    docker:
+      image: python:3.11-slim
+    beforeCommands:
+      - pip install requests
     script: |
       #!/usr/bin/env python
       import json
       import requests
-
+      import os
+      
+      api_url = os.environ.get("API_BASE_URL", "http://localhost:8000")
       incident_id = "{{ inputs.incident_id }}"
-      resp = requests.post("http://localhost:8000/repair", json={"id": incident_id})
-      resp.raise_for_status()
-      print(json.dumps(resp.json(), indent=2))
+      
+      # Try to fetch existing incident
+      try:
+          resp = requests.get(f"{api_url}/incidents/{incident_id}")
+          if resp.status_code == 200:
+              incident = resp.json()["incident"]
+              print(f"Found existing incident: {incident_id}")
+          else:
+              raise Exception("Not found")
+      except:
+          # Create new incident
+          resp = requests.post(
+              f"{api_url}/incidents",
+              json={"signal": "{{ inputs.log_text }}"}
+          )
+          incident = resp.json()["incident"]
+          print(f"Created new incident: {incident['id']}")
+      
+      print(json.dumps(incident, indent=2))
+
+  # Task 2: AI Agent analyzes and summarizes the incident
+  - id: summarize_incident
+    type: io.kestra.plugin.ai.agent.AIAgent
+    label: AI-powered incident analysis and summary
+    systemMessage: |
+      You are DevSentinel, an expert automated incident management assistant.
+      
+      Your responsibilities:
+      1. Analyze incident logs and error messages
+      2. Identify root cause and impact
+      3. Determine severity (critical, high, medium, low)
+      4. Propose specific, actionable fixes
+      5. Suggest preventive measures
+      
+      Response format:
+      - Summary: Brief one-line description
+      - Root Cause: Technical explanation
+      - Impact: Services/users affected
+      - Severity: critical/high/medium/low
+      - Proposed Fix: Specific code or config changes
+      - Prevention: How to avoid similar issues
+    prompt: |
+      Analyze this incident:
+      
+      Incident ID: {{ inputs.incident_id }}
+      Logs: {{ inputs.log_text }}
+      Initial Severity: {{ inputs.severity }}
+      
+      Provide detailed analysis and recommendations.
+    temperature: 0.3  # Lower temperature for more consistent analysis
+
+  # Task 3: Parse AI analysis and decide next steps
+  - id: decide_action
+    type: io.kestra.plugin.scripts.python.Script
+    label: Parse AI analysis and determine action plan
+    docker:
+      image: python:3.11-slim
+    script: |
+      #!/usr/bin/env python
+      import json
+      import re
+      
+      summary = """{{ outputs.summarize_incident.textOutput | default("No summary produced.") }}"""
+      incident_id = "{{ inputs.incident_id }}"
+      auto_fix = {{ inputs.auto_fix_enabled }}
+      
+      print("="*60)
+      print("AI INCIDENT ANALYSIS")
+      print("="*60)
+      print(summary)
+      print("="*60)
+      
+      # Parse severity from AI output
+      severity_match = re.search(r"Severity:\s*(critical|high|medium|low)", summary, re.IGNORECASE)
+      severity = severity_match.group(1).lower() if severity_match else "medium"
+      
+      # Determine if automated fix should be attempted
+      requires_code_fix = any(keyword in summary.lower() for keyword in [
+          "code", "function", "method", "class", "bug", "logic", "retry", "timeout"
+      ])
+      requires_config_fix = any(keyword in summary.lower() for keyword in [
+          "config", "threshold", "setting", "parameter", "timeout", "limit"
+      ])
+      
+      action_plan = {
+          "incident_id": incident_id,
+          "severity": severity,
+          "requires_code_fix": requires_code_fix,
+          "requires_config_fix": requires_config_fix,
+          "auto_fix_enabled": auto_fix,
+          "next_action": "manual_review"
+      }
+      
+      if auto_fix and requires_code_fix:
+          action_plan["next_action"] = "run_code_fix"
+      elif auto_fix and requires_config_fix:
+          action_plan["next_action"] = "run_config_update"
+      elif severity in ["critical", "high"]:
+          action_plan["next_action"] = "alert_oncall"
+      
+      print("\nACTION PLAN:")
+      print(json.dumps(action_plan, indent=2))
+
+  # Task 4: Run automated code fix (conditional)
+  - id: run_code_fix
+    type: io.kestra.plugin.scripts.python.Script
+    label: Execute Cline automated code fix
+    disabled: false
+    docker:
+      image: python:3.11-slim
+    beforeCommands:
+      - pip install pyyaml
+    script: |
+      #!/usr/bin/env python
+      import sys
+      import json
+      import subprocess
+      
+      incident_id = "{{ inputs.incident_id }}"
+      
+      # In production, this would run: cline task fix_bug.task.py
+      # For demo, we simulate by importing the task
+      sys.path.insert(0, "/workspace/cline_tasks")
+      
+      print(f"Running automated code fix for incident: {incident_id}")
+      
+      # Simulate running the Cline task
+      import importlib.util
+      spec = importlib.util.spec_from_file_location("fix_bug_task", "/workspace/cline_tasks/fix_bug.task.py")
+      fix_bug_module = importlib.util.module_from_spec(spec)
+      spec.loader.exec_module(fix_bug_module)
+      result = fix_bug_module.run({"incident_id": incident_id})
+      
+      print("\nFIX RESULT:")
+      print(json.dumps(result, indent=2))
+      
+      print("\nDIFF:")
+      print(result.get("diff", "No diff available"))
+
+  # Task 5: Run config update (conditional)
+  - id: run_config_update
+    type: io.kestra.plugin.scripts.python.Script
+    label: Execute Cline automated config update
+    disabled: false
+    docker:
+      image: python:3.11-slim
+    beforeCommands:
+      - pip install pyyaml
+    script: |
+      #!/usr/bin/env python
+      import sys
+      import json
+      
+      incident_id = "{{ inputs.incident_id }}"
+      
+      print(f"Running automated config update for incident: {incident_id}")
+      
+      # Simulate running the Cline task
+      import importlib.util
+      spec = importlib.util.spec_from_file_location("update_config_task", "/workspace/cline_tasks/update_config.task.py")
+      update_config_module = importlib.util.module_from_spec(spec)
+      spec.loader.exec_module(update_config_module)
+      result = update_config_module.run({"incident_id": incident_id})
+      
+      print("\nCONFIG UPDATE RESULT:")
+      print(json.dumps(result, indent=2))
+
+  # Task 6: Call repair API endpoint
+  - id: call_repair_api
+    type: io.kestra.plugin.scripts.python.Script
+    label: Trigger repair via DevSentinel API
+    docker:
+      image: python:3.11-slim
+    beforeCommands:
+      - pip install requests
+    script: |
+      #!/usr/bin/env python
+      import json
+      import requests
+      import os
+      
+      api_url = os.environ.get("API_BASE_URL", "http://localhost:8000")
+      incident_id = "{{ inputs.incident_id }}"
+      
+      print(f"Calling repair API for incident: {incident_id}")
+      
+      try:
+          resp = requests.post(
+              f"{api_url}/repair",
+              json={"id": incident_id},
+              timeout=30
+          )
+          resp.raise_for_status()
+          result = resp.json()
+          
+          print("\nREPAIR API RESPONSE:")
+          print(json.dumps(result, indent=2))
+      except Exception as e:
+          print(f"ERROR calling repair API: {e}")
+          raise
+
+  # Task 7: Verify fix (optional validation step)
+  - id: verify_fix
+    type: io.kestra.plugin.scripts.python.Script
+    label: Verify that the fix resolved the incident
+    disabled: false
+    docker:
+      image: python:3.11-slim
+    beforeCommands:
+      - pip install requests
+    script: |
+      #!/usr/bin/env python
+      import json
+      import requests
+      import time
+      import os
+      
+      api_url = os.environ.get("API_BASE_URL", "http://localhost:8000")
+      incident_id = "{{ inputs.incident_id }}"
+      
+      print("Waiting 5 seconds before verification...")
+      time.sleep(5)
+      
+      # Check incident status
+      resp = requests.get(f"{api_url}/incidents/{incident_id}")
+      incident = resp.json()["incident"]
+      
+      status = incident.get("status", "unknown")
+      print(f"\nIncident Status: {status}")
+      
+      if status == "resolved":
+          print("✓ Incident successfully resolved!")
+      else:
+          print("✗ Incident not yet resolved - may require manual intervention")
+      
+      print(json.dumps(incident, indent=2))
+
+  # Task 8: Send notification
+  - id: send_notification
+    type: io.kestra.plugin.scripts.python.Script
+    label: Send notification about incident resolution
+    disabled: false
+    docker:
+      image: python:3.11-slim
+    script: |
+      #!/usr/bin/env python
+      import json
+      import os
+      
+      incident_id = "{{ inputs.incident_id }}"
+      summary = """{{ outputs.summarize_incident.textOutput | default("No summary") }}"""
+      
+      notification = {
+          "incident_id": incident_id,
+          "status": "processed",
+          "summary": summary[:200],
+          "channel": "slack",
+          "webhook": os.environ.get("SLACK_WEBHOOK", ""),
+          "message": f"Incident {incident_id} has been analyzed and processed by DevSentinel AI."
+      }
+      
+      print("\nNOTIFICATION:")
+      print(json.dumps(notification, indent=2))
+      
+      # In production, send to Slack/email/PagerDuty
+      if notification["webhook"]:
+          print("Would send to Slack webhook")
+      else:
+          print("No webhook configured - notification skipped")
+
+# Error handling for the entire flow
+errors:
+  - id: handle_flow_error
+    type: io.kestra.plugin.scripts.python.Script
+    script: |
+      #!/usr/bin/env python
+      import json
+      
+      error_info = {
+          "flow_id": "{{ flow.id }}",
+          "execution_id": "{{ execution.id }}",
+          "incident_id": "{{ inputs.incident_id }}",
+          "error": "Flow execution failed",
+          "status": "failed"
+      }
+      
+      print("FLOW ERROR:")
+      print(json.dumps(error_info, indent=2))

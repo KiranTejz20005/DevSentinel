@@ -1,52 +1,45 @@
 # DevSentinel
 
-DevSentinel is an AI-driven incident management prototype that detects issues, summarizes impact, and can auto-apply fixes. It wires together Kestra (orchestration), Cline CLI (autonomous code edits), CodeRabbit (PR review), Oumi (RL training), and Vercel (deployment) to satisfy hackathon requirements.
+AI-powered incident detection and automated code repair system using Google Gemini API.
 
-## Structure
-- `kestra/` Kestra flow definitions (AI Agent-based incident flow)
-- `services/` Python services (API, detection, repair helpers)
-- `cline_tasks/` Cline CLI automation tasks
-- `oumi/` RL/reward configuration and functions
-- `frontend/` Optional status UI (Next.js style)
-- `.github/workflows/` CI/CD pipelines
-- `requirements.txt` Python deps
+## Quick Start
 
-## System architecture
-- Monitoring & ingestion: logs/metrics feed incidents into Kestra (can be a dummy log generator while prototyping).
-- Orchestration (Kestra): Kestra AI Agent summarizes incidents and decides next steps, optionally branching to sub-flows or scripts.
-- Automated repair: If a code/config bug is detected, Cline CLI is invoked to modify the repo automatically (can be triggered by Kestra or run separately).
-- Code review (CodeRabbit): Changes are pushed to GitHub; CodeRabbit reviews PRs and can propose one-click fixes.
-- Model improvement (Oumi): Oumi trains an assistant via RL; custom reward functions score successful repairs, and `oumi train` runs experiments.
-- UI & deploy (Vercel): A simple FastAPI/Next.js status surface is deployed to Vercel for the demo.
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-High-level flow: `Logs -> Kestra AI summary -> decision -> Cline code fix -> GitHub commit -> CodeRabbit review -> (optional Oumi RL retrain) -> redeploy on Vercel`.
+2. Configure environment:
+```bash
+cp .env.example .env
+# Add your GEMINI_API_KEY to .env
+```
 
-## Quickstart
-1. Create and activate a virtualenv.
-2. `pip install -r requirements.txt`
-3. Run the API: `uvicorn services.api:app --reload --port 8000`
-4. Extend `kestra/incident_flow.yaml` with real tasks and secrets.
+3. Run the server:
+```bash
+uvicorn devsentinel.services.api:app --reload --port 8000
+```
 
-## Demo endpoints (mocked)
-- `GET /health` basic check
-- `GET /incidents` list mocked incidents (in-memory)
-- `GET /actions` recent mock repair actions
-- `POST /repair` with `{ "id": "incident-id" }` simulates a repair and returns a mock diff
+4. Access:
+- Backend API: http://localhost:8000
+- Frontend Dashboard: http://localhost:3000 (run `python frontend/server.py`)
+- API Docs: http://localhost:8000/docs
 
-## Devcontainer
-- Open in GitHub Codespaces or VS Code Dev Containers; we ship `.devcontainer/devcontainer.json` with Python 3.11 and Node 18.
+## Key Features
 
-## Notes
-- Place secrets in your runtime environment, not in repo.
-- Replace placeholder logic before production use.
+- 🤖 AI-powered incident analysis with Google Gemini
+- 🔧 Automated code repair via Cline integration
+- 📊 Real-time dashboard for incident tracking
+- 🔄 Kestra workflow orchestration
+- 🚀 Vercel deployment ready
 
-## Environment
-- Copy `.env.example` to `.env` and fill values:
-	- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (for deploy action)
-	- `KESTRA_BASE_URL`, `KESTRA_API_TOKEN`
-	- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `HF_TOKEN` (LLM providers for Cline/Oumi/Kestra)
-	- `API_BASE_URL`, `UVICORN_WORKERS` (optional)
+## Environment Variables
 
-## Vercel entrypoint
-- FastAPI app exposed via `api/index.py` (imports `services.api:app`).
-- `frontend/vercel.json` routes `/api/*` to that entrypoint and serves the frontend page for other paths.
+Required in `.env`:
+- `GEMINI_API_KEY` - Get from https://makersuite.google.com/app/apikey
+- `GEMINI_MODEL` - Default: gemini-pro
+- `GEMINI_TEMPERATURE` - Default: 0.7
+
+Optional:
+- `KESTRA_BASE_URL`, `KESTRA_API_TOKEN` - For workflow orchestration
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` - For deployment

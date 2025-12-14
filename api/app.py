@@ -1,1 +1,4 @@
-from services.api import app  # FastAPI entrypoint alias
+"""FastAPI entrypoint for Vercel"""
+from devsentinel.services.api import app
+
+__all__ = ["app"]
