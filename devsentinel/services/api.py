@@ -11,7 +11,7 @@ from .models import IncidentRequest, IncidentResponse, IncidentStatus, IncidentS
 from .incident_handler import IncidentHandler
 from .gemini_client import gemini_client
 from .config import settings
-from .database import get_session, IncidentModel
+from .database import get_session, IncidentModel, init_db
 
 app = FastAPI(
     title="DevSentinel API",
@@ -22,13 +22,19 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 incident_handler = IncidentHandler()
+
+
+@app.on_event("startup")
+def startup_event():
+    """Ensure database tables exist before serving traffic."""
+    init_db()
 
 
 @app.get("/")
@@ -134,16 +140,26 @@ async def get_actions():
 
 
 @app.post("/api/incidents")
-async def create_incident_api(incident: IncidentRequest):
+async def create_incident_api(data: Dict[str, Any] = Body(...)):
     """Create and process a new incident (frontend format)"""
     try:
+        signal = data.get("signal", "")
+        incident = IncidentRequest(
+            title=signal[:100],
+            description=signal,
+            severity=IncidentSeverity.MEDIUM,
+            source="frontend"
+        )
         result = await incident_handler.process_incident(incident)
         return {
             "id": result.id,
-            "severity": result.severity.value,
-            "status": result.status.value,
-            "summary": result.title,
-            "detected_at": result.created_at.isoformat() if result.created_at else None
+            "incident": {
+                "id": result.id,
+                "severity": result.severity.value,
+                "status": result.status.value,
+                "summary": result.title,
+                "detected_at": result.created_at.isoformat() if result.created_at else None
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -161,7 +177,6 @@ async def trigger_repair(data: Dict[str, Any] = Body(...)):
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
         
-        # Trigger repair through incident handler
         session = get_session()
         try:
             db_incident = session.query(IncidentModel).filter(
@@ -169,35 +184,17 @@ async def trigger_repair(data: Dict[str, Any] = Body(...)):
             ).first()
             
             if db_incident:
-                await incident_handler._attempt_auto_repair(db_incident)
+                # Attempt automated repair; fallback to manual mark if disabled
+                if settings.ENABLE_AUTO_REPAIR:
+                    await incident_handler._attempt_auto_repair(db_incident)
+                else:
+                    db_incident.status = IncidentStatus.RESOLVED
+                    db_incident.resolution = "Repaired manually"
+                    session.commit()
                 return {"status": "repair_triggered", "incident_id": incident_id}
         finally:
             session.close()
             
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/api/incidents/{incident_id}")
-async def delete_incident(incident_id: str):
-    """Delete an incident"""
-    try:
-        session = get_session()
-        try:
-            incident = session.query(IncidentModel).filter(
-                IncidentModel.id == incident_id
-            ).first()
-            
-            if not incident:
-                raise HTTPException(status_code=404, detail="Incident not found")
-            
-            session.delete(incident)
-            session.commit()
-            return {"status": "deleted", "incident_id": incident_id}
-        finally:
-            session.close()
     except HTTPException:
         raise
     except Exception as e:
@@ -211,7 +208,6 @@ async def cline_fix_bug(data: Dict[str, Any] = Body(...)):
         description = data.get("description", "")
         files = data.get("files", [])
         
-        # Create an incident for this bug fix
         incident = IncidentRequest(
             title="Manual Bug Fix Request",
             description=description,
@@ -241,6 +237,30 @@ async def test_rewards():
             "optimized_score": 0.92
         }
     }
+
+
+@app.delete("/api/incidents/{incident_id}")
+async def delete_incident(incident_id: str):
+    """Delete an incident"""
+    try:
+        session = get_session()
+        try:
+            incident = session.query(IncidentModel).filter(
+                IncidentModel.id == incident_id
+            ).first()
+            
+            if not incident:
+                raise HTTPException(status_code=404, detail="Incident not found")
+            
+            session.delete(incident)
+            session.commit()
+            return {"status": "deleted", "incident_id": incident_id}
+        finally:
+            session.close()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/incidents", response_model=IncidentResponse)
